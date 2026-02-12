@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Hotel, MenuItem } from '@/app/lib/data';
+import { Hotel, MenuItem, MOCK_HOTELS } from '@/app/lib/data';
 
 interface StoreContextType {
     hotels: Hotel[];
@@ -17,54 +17,46 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const [hotels, setHotels] = useState<Hotel[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Initial Fetch
+    // Initial Data Load (Simulated)
     useEffect(() => {
-        fetch('/api/hotels')
-            .then(res => res.json())
-            .then(data => {
-                setHotels(data);
-                setLoading(false);
-            })
-            .catch(err => console.error('Failed to fetch hotels', err));
+        // In a real app, we'd fetch from API
+        // For GitHub Pages static demo, we use local mock data
+        // Simulate network delay
+        const demoData = [...MOCK_HOTELS];
+        setTimeout(() => {
+            setHotels(demoData);
+            setLoading(false);
+        }, 500);
     }, []);
 
     const addHotel = async (hotelData: Omit<Hotel, 'id' | 'menu'>) => {
-        // Optimistic Update can be tricky for ID generation, so we wait for server response
-        try {
-            const res = await fetch('/api/hotels', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(hotelData)
-            });
-            const newHotel = await res.json();
-            setHotels(current => [...current, newHotel]);
-        } catch (error) {
-            console.error('Failed to add hotel', error);
-        }
+        // Client-side simulation
+        const newHotel: Hotel = {
+            id: `h${Date.now()}`,
+            name: hotelData.name,
+            location: hotelData.location,
+            menu: []
+        };
+        setHotels(current => [...current, newHotel]);
     };
 
     const addItemToHotel = async (hotelId: string, itemData: Omit<MenuItem, 'id'>) => {
-        try {
-            const res = await fetch(`/api/hotels/${hotelId}/menu`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(itemData)
-            });
-            const newItem = await res.json();
+        // Client-side simulation
+        const newItem: MenuItem = {
+            id: `m${Date.now()}`,
+            ...itemData
+        };
 
-            setHotels(current => current.map(h => {
-                if (h.id === hotelId) {
-                    return { ...h, menu: [...h.menu, newItem] };
-                }
-                return h;
-            }));
-        } catch (error) {
-            console.error('Failed to add item', error);
-        }
+        setHotels(current => current.map(h => {
+            if (h.id === hotelId) {
+                return { ...h, menu: [...h.menu, newItem] };
+            }
+            return h;
+        }));
     };
 
     const toggleAvailability = async (hotelId: string, itemId: string, available: boolean) => {
-        // Optimistic update
+        // Client-side simulation
         setHotels(current => current.map(h => {
             if (h.id === hotelId) {
                 return {
@@ -74,16 +66,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             }
             return h;
         }));
-
-        try {
-            await fetch(`/api/hotels/${hotelId}/menu`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ itemId, available })
-            });
-        } catch (error) {
-            console.error('Failed to update availability', error);
-        }
     };
 
     return (
